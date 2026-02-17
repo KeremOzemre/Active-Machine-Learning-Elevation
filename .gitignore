@@ -1,7 +1,10 @@
 .idea/
 __pycharm__/
-.env/
+__pycache__/
+.DS_Store
 
 # UV files
 .venv/
 uv.lock
+
+.env
