@@ -5,3 +5,5 @@ __pycharm__/
 # UV files
 .venv/
 uv.lock
+
+.env
