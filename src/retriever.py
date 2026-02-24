@@ -37,6 +37,8 @@ def request_elevation_area(start, end, samples):
     start: (lat, long)
     end: (lat, long)
     samples: number of samples to take in the area
+
+    Returns a dict with the elevation of each point in the area.
     """
 
     start_lat = start[0]
