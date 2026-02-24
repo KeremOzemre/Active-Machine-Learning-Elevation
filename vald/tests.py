@@ -13,9 +13,9 @@ def get_location():
     # (55.776345, 12.505247), (55.820256, 12.615981)
 
 def save_data():
-    start = (55.776345, 12.505247)
-    end = (55.820256, 12.615981)
-    samples = retriever._BATCH_SIZE * 1000 # test multiple batches
+    start = (54.963728, 14.688672) # (55.776345, 12.505247)
+    end = (55.327825, 15.181072) # (55.820256, 12.615981)
+    samples = retriever._BATCH_SIZE * 2000
     retriever.save_data_file(start, end, samples)
 
 if __name__ == '__main__':
