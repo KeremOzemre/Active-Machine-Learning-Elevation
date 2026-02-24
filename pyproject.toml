@@ -6,6 +6,8 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "dotenv>=0.9.9",
+    "googlemaps>=4.10.0",
+    "httpx>=0.28.1",
     "numpy>=2.4.2",
     "requests>=2.32.5",
 ]

@@ -1,74 +1,87 @@
 from dotenv import load_dotenv
 import os
-load_dotenv()
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
-import requests
+import googlemaps
+
+load_dotenv()
 
 API_KEY = os.getenv("GOOGLE_API_KEY")
 
-def request_location(lat, long) -> dict:
-    """Request the elevation of a location using the Google Maps Elevation API."""
+# Google Elevation API allows up to 512 locations per request
+_BATCH_SIZE = 512
 
-    response = requests.get(
-        f"https://maps.googleapis.com/maps/api/elevation/json?"
-        f"locations={lat},{long}"
-        f"&key={API_KEY}",
-    )
-
-    return response.json()
-
-def request_elevation(lat, long):
-    """Request the elevation of a location using the Google Maps Elevation API."""
-
-    response = request_location(lat, long)
-
-    if response["status"] == "OK":
-        return response["results"][0]["elevation"]
-    else:
-        raise Exception(f"Error requesting elevation: {response['status']}")
+# Shared client and thread pool
+_client = googlemaps.Client(key=API_KEY)
+_executor = ThreadPoolExecutor()
 
 
-def request_elevation_area(start, end, samples):
+def _fetch_elevations_batch(points: list[tuple]) -> list[float]:
+    """Fetch elevations for a batch of (lat, long) points using the official client."""
+    results = _client.elevation(points)
+    return [r["elevation"] for r in results]
+
+
+async def request_elevation_area_async(
+    start: tuple, end: tuple, samples: int
+) -> dict[tuple, float]:
     """
-    Request the elevation of a location using the Google Maps Elevation API.
+    Asynchronously request elevations for evenly-spaced points between start and end.
 
-    Denmark boundaries: lat: 54 58 - long: 8 15
+    Denmark boundaries: lat: 54-58, long: 8-15
 
     start: (lat, long)
     end: (lat, long)
-    samples: number of samples to take in the area
+    samples: number of evenly-spaced samples along the path
 
-    Returns a dict with the elevation of each point in the area.
+    Returns a dict mapping each (lat, long) point to its elevation.
     """
+    start_lat, start_long = start
+    end_lat, end_long = end
 
-    start_lat = start[0]
-    start_long = start[1]
-    end_lat = end[0]
-    end_long = end[1]
+    points = [
+        (
+            start_lat + (end_lat - start_lat) * i / (samples - 1),
+            start_long + (end_long - start_long) * i / (samples - 1),
+        )
+        for i in range(samples)
+    ]
 
-    # Points with equal distance between points
-    points = []
-    for i in range(samples):
-        lat = start_lat + (end_lat - start_lat) * i / (samples - 1)
-        long = start_long + (end_long - start_long) * i / (samples - 1)
-        points.append((lat, long))
+    # Split into batches of up to _BATCH_SIZE and fire all batches concurrently
+    batches = [points[i : i + _BATCH_SIZE] for i in range(0, len(points), _BATCH_SIZE)]
 
-    # Request elevation for each point
-    elevations = []
-    for point in points:
-        elevation = request_elevation(point[0], point[1])
-        elevations.append(elevation)
+    loop = asyncio.get_running_loop()
+    results = await asyncio.gather(
+        *[loop.run_in_executor(_executor, _fetch_elevations_batch, batch) for batch in batches]
+    )
 
-    # Store elevations in dict with point as key
-    elevations = {point: elevation for point, elevation in zip(points, elevations)}
+    elevations = [elev for batch_result in results for elev in batch_result]
+    return dict(zip(points, elevations))
 
-    return elevations
 
-def save_data_file(start, end, samples):
-    """Save the elevation data to a file."""
+def request_elevation_area(start: tuple, end: tuple, samples: int) -> dict[tuple, float]:
+    """Synchronous wrapper around request_elevation_area_async."""
+    return asyncio.run(request_elevation_area_async(start, end, samples))
 
-    filename = "elevation_data.csv"
+
+async def request_elevation_async(lat: float, long: float) -> float:
+    """Asynchronously request the elevation of a single (lat, long) point."""
+    loop = asyncio.get_running_loop()
+    elevations = await loop.run_in_executor(_executor, _fetch_elevations_batch, [(lat, long)])
+    return elevations[0]
+
+
+def request_elevation(lat: float, long: float) -> float:
+    """Synchronous wrapper around request_elevation_async."""
+    return asyncio.run(request_elevation_async(lat, long))
+
+
+def save_data_file(start: tuple, end: tuple, samples: int, filename: str = "elevation_data.csv") -> None:
+    """Save the elevation data to a CSV file."""
+    path = Path(filename)
     data = request_elevation_area(start, end, samples)
-    with open(filename, "w") as f:
-        for point, elevation in data.items():
-            f.write(f"{point[0]},{point[1]},{elevation}\n")
+    with path.open("w") as f:
+        for (lat, long), elevation in data.items():
+            f.write(f"{lat},{long},{elevation}\n")
