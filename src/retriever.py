@@ -26,3 +26,37 @@ def request_elevation(lat, long):
         return response["results"][0]["elevation"]
     else:
         raise Exception(f"Error requesting elevation: {response['status']}")
+
+
+def request_elevation_area(start, end, samples):
+    """
+    Request the elevation of a location using the Google Maps Elevation API.
+
+    Denmark boundaries: lat: 54 58 - long: 8 15
+
+    start: (lat, long)
+    end: (lat, long)
+    samples: number of samples to take in the area
+    """
+
+    start_lat = start[0]
+    start_long = start[1]
+    end_lat = end[0]
+    end_long = end[1]
+
+    if end_lat - start_lat != end_long - start_long:
+        raise Exception("Start and end points must be on the same diagonal")
+
+    # Generates points in square with equal amount of distance between
+    points = []
+    for i in range(samples):
+        lat = start_lat + (end_lat - start_lat) * i / (samples - 1)
+        long = start_long + (end_long - start_long) * i / (samples - 1)
+        points.append((lat, long))
+
+    elevations = []
+    for point in points:
+        elevation = request_elevation(point[0], point[1])
+        elevations.append(elevation)
+
+    return elevations
