@@ -44,9 +44,6 @@ def request_elevation_area(start, end, samples):
     end_lat = end[0]
     end_long = end[1]
 
-    if end_lat - start_lat != end_long - start_long:
-        raise Exception("Start and end points must be on the same diagonal")
-
     # Points with equal distance between points
     points = []
     for i in range(samples):
