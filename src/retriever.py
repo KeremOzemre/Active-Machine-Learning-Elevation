@@ -52,10 +52,14 @@ async def request_elevation_area_async(
     # Split into batches of up to _BATCH_SIZE and fire all batches concurrently
     batches = [points[i : i + _BATCH_SIZE] for i in range(0, len(points), _BATCH_SIZE)]
 
+    semaphore = asyncio.Semaphore(10)
     loop = asyncio.get_running_loop()
-    results = await asyncio.gather(
-        *[loop.run_in_executor(_executor, _fetch_elevations_batch, batch) for batch in batches]
-    )
+
+    async def fetch_with_semaphore(batch):
+        async with semaphore:
+            return await loop.run_in_executor(_executor, _fetch_elevations_batch, batch)
+
+    results = await asyncio.gather(*[fetch_with_semaphore(batch) for batch in batches])
 
     elevations = [elev for batch_result in results for elev in batch_result]
     return dict(zip(points, elevations))
