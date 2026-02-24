@@ -47,13 +47,14 @@ def request_elevation_area(start, end, samples):
     if end_lat - start_lat != end_long - start_long:
         raise Exception("Start and end points must be on the same diagonal")
 
-    # Generates points in square with equal amount of distance between
+    # Points with equal distance between points
     points = []
     for i in range(samples):
         lat = start_lat + (end_lat - start_lat) * i / (samples - 1)
         long = start_long + (end_long - start_long) * i / (samples - 1)
         points.append((lat, long))
 
+    # Request elevation for each point
     elevations = []
     for point in points:
         elevation = request_elevation(point[0], point[1])
