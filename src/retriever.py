@@ -57,4 +57,7 @@ def request_elevation_area(start, end, samples):
         elevation = request_elevation(point[0], point[1])
         elevations.append(elevation)
 
+    # Store elevations in dict with point as key
+    elevations = {point: elevation for point, elevation in zip(points, elevations)}
+
     return elevations
