@@ -63,3 +63,12 @@ def request_elevation_area(start, end, samples):
     elevations = {point: elevation for point, elevation in zip(points, elevations)}
 
     return elevations
+
+def save_data_file(start, end, samples):
+    """Save the elevation data to a file."""
+
+    filename = "elevation_data.csv"
+    data = request_elevation_area(start, end, samples)
+    with open(filename, "w") as f:
+        for point, elevation in data.items():
+            f.write(f"{point[0]},{point[1]},{elevation}\n")
