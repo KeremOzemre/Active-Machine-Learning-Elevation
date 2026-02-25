@@ -8,6 +8,9 @@ dependencies = [
     "dotenv>=0.9.9",
     "googlemaps>=4.10.0",
     "httpx>=0.28.1",
+    "matplotlib-inline>=0.2.1",
+    "nest-asyncio>=1.6.0",
     "numpy>=2.4.2",
     "requests>=2.32.5",
+    "scikit-optimize>=0.10.2",
 ]
